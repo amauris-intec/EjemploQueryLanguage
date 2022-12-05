@@ -80,6 +80,13 @@ public interface IqueryVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitCriterioAlphanumerico([NotNull] queryParser.CriterioAlphanumericoContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>criterioJoin</c>
+	/// labeled alternative in <see cref="queryParser.criterio"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitCriterioJoin([NotNull] queryParser.CriterioJoinContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>tablaSinAlias</c>
 	/// labeled alternative in <see cref="queryParser.tabla"/>.
 	/// </summary>

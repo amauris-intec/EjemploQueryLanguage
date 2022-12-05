@@ -11,8 +11,9 @@ condicion : criterio                  #condicionUnica
           | criterio (COMA criterio)+ #condicionMultiple
           ;
 
-criterio : ID IGUAL NUM   #criterioNumerico
-         | ID IGUAL TEXTO #criterioAlphanumerico
+criterio : (alias=ID PUNTO)? campo=ID IGUAL NUM                      #criterioNumerico
+         | (alias=ID PUNTO)? campo=ID IGUAL TEXTO                    #criterioAlphanumerico
+         | alias1=ID PUNTO campo1=ID IGUAL alias2=ID PUNTO campo2=ID #criterioJoin
          ;
          
          
@@ -39,6 +40,6 @@ COMA : ',' ;
 PUNTO : '.' ;
 NUM : [0-9]+ ;
 TEXTO : COMILLAS ~'"'* COMILLAS ;
-ID : [A-Za-z] [A-Za-z0-9]* ;
+ID : [A-Za-z_] [A-Za-z0-9_]* ;
 
 WS : [\t ]+ -> skip ;

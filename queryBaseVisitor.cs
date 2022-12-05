@@ -111,6 +111,17 @@ public partial class queryBaseVisitor<Result> : AbstractParseTreeVisitor<Result>
 	/// <return>The visitor result.</return>
 	public virtual Result VisitCriterioAlphanumerico([NotNull] queryParser.CriterioAlphanumericoContext context) { return VisitChildren(context); }
 	/// <summary>
+	/// Visit a parse tree produced by the <c>criterioJoin</c>
+	/// labeled alternative in <see cref="queryParser.criterio"/>.
+	/// <para>
+	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
+	/// on <paramref name="context"/>.
+	/// </para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	public virtual Result VisitCriterioJoin([NotNull] queryParser.CriterioJoinContext context) { return VisitChildren(context); }
+	/// <summary>
 	/// Visit a parse tree produced by the <c>tablaSinAlias</c>
 	/// labeled alternative in <see cref="queryParser.tabla"/>.
 	/// <para>

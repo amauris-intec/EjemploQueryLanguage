@@ -29,7 +29,31 @@ namespace EjemploQueryLanguage
 
         public string ObtenerPgSql()
         {
-            return "";
+            string sql = "";
+            sql += "SELECT " + (seleccion?.Texto() ?? "*");
+            sql += "\nFROM " + tablaIzquierda.Texto();
+            if (tablaDerecha != null)
+            {
+                switch (tipoJoin)
+                {
+                    case TipoJoin.Inner:
+                        sql += " INNER JOIN " + tablaDerecha?.Texto(); break;
+                    case TipoJoin.Left:
+                        sql += " LEFT JOIN " + tablaDerecha?.Texto(); break;
+                    case TipoJoin.Right:
+                        sql += " RIGHT JOIN " + tablaDerecha?.Texto(); break;
+                }
+            }
+            if (condicionJoin != null)
+            {
+                sql += " ON " + condicionJoin?.Texto();
+            }
+            if (condicion != null)
+            {
+                sql += "\nWHERE " + condicion?.Texto();
+            }
+            
+            return sql;
         }
 
     }
@@ -41,33 +65,55 @@ namespace EjemploQueryLanguage
 
     internal struct Condicion
     {
-        public Criterio[] criterios = new Criterio[] { };
+        public List<Criterio> criterios = new List<Criterio>();
         
-        public void AgregarCriterio(Criterio criterio) => criterios.Append(criterio);
+        public void AgregarCriterio(Criterio criterio) => criterios.Add(criterio);
         public Condicion() { }
+
+        public string Texto() => string.Join(" AND ", criterios.Select(x => x.Texto()));
 
     }
     enum CampoTipo
     {
-        Numerico, Alfanumerico
+        Numerico, Alfanumerico, Join
     }
 
     internal struct Criterio
     {
+        public string? alias;
         public string campo;
-        public string valor;
+        public string? valor = null;
         public CampoTipo tipo;
-        public Criterio(string campo, string valor, CampoTipo tipo) 
-            => (this.campo, this.valor, this.tipo) = (campo, valor, tipo);
+
+        public string? alias2 = null;
+        public string? campo2 = null;
+
+        public Criterio(string campo, string valor, CampoTipo tipo, string? alias=null) 
+            => (this.campo, this.valor, this.tipo, this.alias) = (campo, valor, tipo, alias);
+
+        public Criterio(string alias1, string campo1, string alias2, string campo2)
+            => (this.alias, this.campo, this.alias2, this.campo2, this.tipo) = (alias1, campo1, alias2, campo2, CampoTipo.Join);
+
+        public string Texto() 
+        {
+            if (tipo == CampoTipo.Numerico)
+                return $"{campo} = {valor}";
+            else if (tipo == CampoTipo.Alfanumerico) 
+                return $"{campo} = {valor}";
+            else //tipo == CampoTipo.Join
+                return $"{alias}.{campo} = {alias2}.{campo2}";
+        } 
 
     }
 
 
     internal struct Seleccion
     {
-        public string[] campos = new string[] { };
-        public Seleccion() { }
-        public void AgregarCampo(string campo) => campos.Append(campo);
+        public List<string> campos = new List<string>();
+        public Seleccion(List<string> campos) => this.campos = campos;
+        public Seleccion(string campo) => campos.Add(campo);
+
+        public string Texto() => string.Join(", ", campos);
 
     }
 
@@ -77,6 +123,8 @@ namespace EjemploQueryLanguage
         public string? alias;
         public Tabla(string nombre, string? alias=null)
             => (this.nombre, this.alias) = (nombre, alias);
+
+        public string Texto() => alias is not null ? $"{nombre} as {alias}" : nombre;
     }
 
 
@@ -101,16 +149,18 @@ namespace EjemploQueryLanguage
 
         public override object VisitCriterioAlphanumerico([NotNull] queryParser.CriterioAlphanumericoContext context)
         {
-            string campo = context.ID().GetText();
+            string campo = context.campo.Text;
+            string? alias = context.alias?.Text;
             string valor = context.TEXTO().GetText();
-            return new Criterio(campo, valor, CampoTipo.Alfanumerico);
+            return new Criterio(campo, valor, CampoTipo.Alfanumerico, alias);
         }
 
         public override object VisitCriterioNumerico([NotNull] queryParser.CriterioNumericoContext context)
         {
-            string campo = context.ID().GetText();
+            string campo = context.campo.Text;
+            string? alias = context.alias?.Text;
             string valor = context.NUM().GetText();
-            return new Criterio(campo, valor, CampoTipo.Numerico);
+            return new Criterio(campo, valor, CampoTipo.Numerico, alias);
         }
 
         public override object VisitQueryConJoin([NotNull] queryParser.QueryConJoinContext context)
@@ -176,14 +226,25 @@ namespace EjemploQueryLanguage
             return new Query(tablaIzquierda, tablaDerecha, tipo);
         }
 
-        public override string?[] VisitSeleccionMultiple([NotNull] queryParser.SeleccionMultipleContext context)
+        public override object VisitCriterioJoin([NotNull] queryParser.CriterioJoinContext context)
         {
-            return context.ID().Select(x => x.ToString()).ToArray();
+            string campo1 = context.campo1.Text;
+            string alias1 = context.alias1.Text;
+            string campo2 = context.campo2.Text;
+            string alias2 = context.alias2.Text;
+            return new Criterio(alias1,campo1,alias2,campo2);
         }
 
-        public override string VisitSeleccionUnica([NotNull] queryParser.SeleccionUnicaContext context)
+        public override object VisitSeleccionMultiple([NotNull] queryParser.SeleccionMultipleContext context)
         {
-            return context.ID().GetText();
+            Seleccion seleccion = new Seleccion(context.ID().Select(x => x.GetText()).ToList());
+            return seleccion;
+        }
+
+        public override object VisitSeleccionUnica([NotNull] queryParser.SeleccionUnicaContext context)
+        {
+            Seleccion seleccion = new Seleccion(context.ID().GetText());
+            return seleccion;
         }
 
         public override object VisitTablaConAlias([NotNull] queryParser.TablaConAliasContext context)
